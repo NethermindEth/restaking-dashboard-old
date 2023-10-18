@@ -155,7 +155,20 @@ export const getStrategyDepositLeaderBoard = async (
 
   const { stEthAddress, cbEthAddress, rEthAddress } = tokenAddresses;
   const tokenAddressList = Object.values(tokenAddresses).filter((el) => el);
-
+  console.log(` WITH ranked_deposits AS (
+    SELECT
+        depositor,
+        token,
+        SUM(token_amount) / POWER(10, 18) AS total_amount,
+        SUM(shares) / POWER(10, 18) AS total_shares,
+        ROW_NUMBER() OVER (PARTITION BY token ORDER BY total_shares DESC) AS rn
+    FROM ${chain}.eigenlayer.strategy_manager_deposits
+    WHERE token IN (${tokenAddressList.map((addr) => `'${addr}'`).join(", ")})
+    GROUP BY depositor, token
+  )
+    SELECT *
+    FROM ranked_deposits
+    WHERE rn <= 50;`);
   const response = (
     await spiceClient.query(`
   WITH ranked_deposits AS (
@@ -166,7 +179,7 @@ export const getStrategyDepositLeaderBoard = async (
         SUM(shares) / POWER(10, 18) AS total_shares,
         ROW_NUMBER() OVER (PARTITION BY token ORDER BY total_shares DESC) AS rn
     FROM ${chain}.eigenlayer.strategy_manager_deposits
-    WHERE token IN (${tokenAddressList.map((addr) => `'${addr}'`).join(",")})
+    WHERE token IN (${tokenAddressList.map((addr) => `'${addr}'`).join(", ")})
     GROUP BY depositor, token
   )
     SELECT *
@@ -187,7 +200,7 @@ export const getStrategyDepositLeaderBoard = async (
     return acc;
   }, {});
 
-  console.log(cbEthAddress, groupedResponse[cbEthAddress]);
+  console.log(cbEthAddress, groupedResponse[cbEthAddress], chain);
 
   return {
     statusCode: 200,

@@ -24,6 +24,8 @@ export default function Data() {
     async function fetchData() {
       try {
         const data = await getDashboardData(network);
+        console.log(data);
+        console.log({ ...data.pieChartData });
         setDashboardData(data);
       } catch (error) {
         console.error(error);
@@ -33,6 +35,10 @@ export default function Data() {
 
     fetchData();
   }, [network]);
+
+  const networkTokensGet = networkTokens(network).tokens;
+  console.log(networkTokensGet);
+  console.log(dashboardData ? dashboardData.tvls : "");
 
   return (
     <>
@@ -58,19 +64,22 @@ export default function Data() {
             </div>
           </div>
           <div className="my-8 w-full lg:w-1/2 flex flex-wrap flex-col lg:flex-row lg:flex-nowrap items-stretch justify-center">
-            {Object.entries(networkTokens(network)).map(([key, value]) => (
-              <div
-                className={`data-card ${value.color} grow mt-8 lg:mt-0 py-8 px-10 md:px-24 mx-4 shadow-lg rounded-md text-center`}
-              >
-                <span className="inline-block">
-                  <Image src={value.image} alt={key} width={48} height={48} />
-                </span>
-                <p className="text-sm md:text-base">Staked {key}</p>
-                <p className="md:text-xl">
-                  {roundToDecimalPlaces(dashboardData[`${key}Tvl`])}
-                </p>
-              </div>
-            ))}
+            {Object.entries(networkTokensGet).map(([key, value]) => {
+              console.log(key, dashboardData, dashboardData.tvls[key]);
+              return (
+                <div
+                  className={`data-card ${value.color} grow mt-8 lg:mt-0 py-8 px-10 md:px-24 mx-4 shadow-lg rounded-md text-center`}
+                >
+                  <span className="inline-block">
+                    <Image src={value.image} alt={key} width={48} height={48} />
+                  </span>
+                  <p className="text-sm md:text-base">Staked {key}</p>
+                  <p className="md:text-xl">
+                    {roundToDecimalPlaces(dashboardData.tvls[key])}
+                  </p>
+                </div>
+              );
+            })}
             <div className="data-card data-card-eth grow mt-8 lg:mt-0 py-8 px-10 md:px-24 mx-4 shadow-lg rounded-md text-center">
               <span className="inline-block">
                 <Image
@@ -99,7 +108,7 @@ export default function Data() {
                     amounts: dashboardData.chartDataDepositsCumulative.amounts,
                     timestamps:
                       dashboardData.chartDataDepositsCumulative.timestamps,
-                    namedLabels: Object.keys(networkTokens(network)),
+                    namedLabels: Object.keys(networkTokensGet),
                   }}
                 />
               </div>
@@ -111,7 +120,7 @@ export default function Data() {
                   data={{
                     amounts: dashboardData.chartDataDepositsDaily.amounts,
                     labels: dashboardData.chartDataDepositsDaily.timestamps,
-                    namedLabels: Object.keys(networkTokens(network)),
+                    namedLabels: Object.keys(networkTokensGet),
                   }}
                   title="Deposited tokens by day"
                 />
@@ -130,7 +139,7 @@ export default function Data() {
                       dashboardData.chartDataWithdrawalsCumulative.amounts,
                     timestamps:
                       dashboardData.chartDataWithdrawalsCumulative.timestamps,
-                    namedLabels: Object.keys(networkTokens(network)),
+                    namedLabels: Object.keys(networkTokensGet),
                   }}
                 />
               </div>
@@ -143,7 +152,7 @@ export default function Data() {
                   data={{
                     amounts: dashboardData.chartDataWithdrawalsDaily.amounts,
                     labels: dashboardData.chartDataWithdrawalsDaily.timestamps,
-                    namedLabels: Object.keys(networkTokens(network)),
+                    namedLabels: Object.keys(networkTokensGet),
                   }}
                   title="Token Withdrawals by day"
                 />
@@ -188,24 +197,15 @@ export default function Data() {
               <h3 className="text-center text-xl">Deposited tokens</h3>
               <PieChart
                 data={{
-                  amounts: [
-                    dashboardData.stEthTvl,
-                    dashboardData.rEthTvl * dashboardData.rEthRate,
-                    dashboardData.cbEthTvl * dashboardData.cbEthRate,
-                    dashboardData.totalStakedBeaconChainEth,
-                  ],
-                  labels: [
-                    "stETH",
-                    "rETH (as ETH)",
-                    "cbETH (as ETH)",
-                    "Beacon Chain ETH",
-                  ],
+                  ...dashboardData.pieChartData,
+                  network: networkTokensGet,
                 }}
               />
             </div>
 
             <LeaderBoard
               boardData={{
+                network: networkTokensGet,
                 ethStakers: dashboardData.groupedStakers,
                 stethStakers: dashboardData.stakersStEthConverted,
                 rethStakers: dashboardData.stakersREthConverted,

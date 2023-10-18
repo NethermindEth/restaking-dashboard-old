@@ -5,6 +5,7 @@ import {
   RETH_ADDRESS,
   RETH_STRATEGY_ADDRESS,
   STETH_STRATEGY_ADDRESS,
+  networkTokens,
   provider,
 } from "./constants";
 import {
@@ -20,6 +21,9 @@ import {
   DepositStakers,
 } from "@/lib/utils";
 import axios from "axios";
+import { ethers } from "ethers";
+
+const getProvider = (url: string) => new ethers.JsonRpcProvider(url);
 
 export async function getDashboardData(network?: string) {
   const {
@@ -37,84 +41,25 @@ export async function getDashboardData(network?: string) {
     chartDataBeaconStakesCumulative,
     chartDataWithdrawalsDaily,
     chartDataWithdrawalsCumulative,
-    stakersStEth,
-    stakersCbEth,
-    stakersREth,
+    stEthStakers,
+    cbEthStakers,
+    rEthStakers,
   } = generateChartData(depositData, withdrawData, depositStakersData);
 
-  const {
-    stEthSharesRate,
-    rEthSharesRate,
-    cbEthSharesRate,
-    cbEthRate,
-    rEthRate,
-    stEthTvl,
-    rEthTvl,
-    cbEthTvl,
-  } = await getRates();
-
-  const stakersBeaconChainEthConverted: LeaderboardUserData[] =
-    // @ts-ignore
-    stakersBeaconChainEth.map((d) => {
-      return {
-        depositor: d.pod_owner,
-        totalStaked: parseInt(d.total_effective_balance),
-      };
-    });
-
-  const stakersREthConverted: LeaderboardUserData[] = stakersREth.map((d) => ({
-    depositor: d.depositor,
-    totalStaked: d.total_shares * rEthSharesRate * rEthRate,
-  }));
-
-  const stakersStEthConverted: LeaderboardUserData[] = stakersStEth.map(
-    (d) => ({
-      depositor: d.depositor,
-      totalStaked: d.total_shares * stEthSharesRate,
-    })
+  const { pieChartData, tvls } = await getRates(
+    { stEthStakers, cbEthStakers, rEthStakers },
+    stakersBeaconChainEth,
+    network || "eth"
   );
-
-  const stakersCbEthConverted: LeaderboardUserData[] = stakersCbEth.map(
-    (d) => ({
-      depositor: d.depositor,
-      totalStaked: d.total_shares! * cbEthSharesRate * cbEthRate,
-    })
-  );
-
-  const groupedStakers = [
-    ...stakersBeaconChainEthConverted,
-    ...stakersStEthConverted,
-    ...stakersREthConverted,
-    ...stakersCbEthConverted,
-  ]
-    .reduce((acc, cur) => {
-      const existingDepositor = acc.find(
-        (d: LeaderboardUserData) => d.depositor === cur.depositor
-      );
-      existingDepositor
-        ? (existingDepositor.totalStaked += cur.totalStaked)
-        : acc.push({ ...cur });
-      return acc;
-    }, [] as LeaderboardUserData[])
-    .sort((a, b) => b.totalStaked - a.totalStaked)
-    .slice(0, MAX_LEADERBOARD_SIZE);
 
   return {
-    rEthTvl,
-    stEthTvl,
-    cbEthTvl,
     chartDataDepositsDaily,
     chartDataDepositsCumulative,
     chartDataWithdrawalsDaily,
     chartDataWithdrawalsCumulative,
     totalStakedBeaconChainEth,
-    stakersBeaconChainEthConverted,
-    stakersREthConverted,
-    stakersStEthConverted,
-    stakersCbEthConverted,
-    groupedStakers,
-    rEthRate,
-    cbEthRate,
+    pieChartData,
+    tvls,
     chartDataBeaconStakesDaily,
     chartDataBeaconStakesCumulative,
   };
@@ -242,11 +187,11 @@ function generateChartData(
     withdrawData.cbEthWithdrawals || []
   );
 
-  const stakersStEth = depositStakersData.stEthDeposits || [];
+  const stEthStakers = depositStakersData.stEthDeposits || [];
 
-  const stakersCbEth = depositStakersData.cbEthDeposits || [];
+  const cbEthStakers = depositStakersData.cbEthDeposits || [];
 
-  const stakersREth = depositStakersData.rEthDeposits || [];
+  const rEthStakers = depositStakersData.rEthDeposits || [];
 
   return {
     chartDataDepositsDaily,
@@ -255,66 +200,99 @@ function generateChartData(
     chartDataBeaconStakesCumulative,
     chartDataWithdrawalsDaily,
     chartDataWithdrawalsCumulative,
-    stakersStEth,
-    stakersCbEth,
-    stakersREth,
+    stEthStakers,
+    cbEthStakers,
+    rEthStakers,
   };
 }
 
-async function getRates() {
-  const rEth = RocketTokenRETH__factory.connect(RETH_ADDRESS, provider);
-  const rEthRate = Number(await rEth.getExchangeRate()) / 1e18;
+async function getRates(stakersData, stakersBeaconChainEth, network: string) {
+  const networkData = networkTokens(network);
+  const provider = getProvider(networkData.url || "");
 
-  const cbEth = StakedTokenV1__factory.connect(CBETH_ADDRESS, provider);
-  const cbEthRate = Number(await cbEth.exchangeRate()) / 1e18;
+  // Object.entries(networkData).map((key, value) => {});
 
-  const stEthStrategy = StrategyBaseTVLLimits__factory.connect(
-    STETH_STRATEGY_ADDRESS,
-    provider
+  const groupedStakersInfo = await Object.entries(
+    networkTokens(network).tokens
+  ).reduce(async (accPromise, [tokenKey, tokenData]) => {
+    const acc = await accPromise;
+    const token = RocketTokenRETH__factory.connect(RETH_ADDRESS, provider);
+
+    const tokenRate =
+      tokenKey === "stEth" ? 1 : Number(await token.getExchangeRate()) / 1e18;
+
+    const tokenStrategy = StrategyBaseTVLLimits__factory.connect(
+      tokenData.STRATEGY_ADDRESS,
+      provider
+    );
+
+    const tokenSharesRate =
+      Number(await tokenStrategy.sharesToUnderlyingView(BigInt(1e18))) / 1e18;
+
+    const tokenTvl =
+      Number(
+        await tokenStrategy.sharesToUnderlyingView(
+          await tokenStrategy.totalShares()
+        )
+      ) / 1e18;
+
+    const stakersTokenConverted: LeaderboardUserData[] = stakersData[
+      `${tokenKey}Stakers`
+    ].map((d) => ({
+      depositor: d.depositor,
+      totalStaked: d.total_shares * tokenSharesRate * tokenRate,
+    }));
+
+    acc.push({
+      stakersTokenConverted,
+      tvl: [tokenKey, tokenTvl],
+      label: tokenData.pieChartLabel,
+    });
+
+    return acc;
+  }, Promise.resolve([]));
+
+  const stakersBeaconChainEthConverted: LeaderboardUserData[] =
+    // @ts-ignore
+    stakersBeaconChainEth.map((d) => {
+      return {
+        depositor: d.pod_owner,
+        totalStaked: parseInt(d.total_effective_balance),
+      };
+    });
+
+  const stakersCombined = groupedStakersInfo.map(
+    (value) => value.stakersTokenConverted
   );
-  const rEthStrategy = StrategyBaseTVLLimits__factory.connect(
-    RETH_STRATEGY_ADDRESS,
-    provider
-  );
-  const cbEthStrategy = StrategyBaseTVLLimits__factory.connect(
-    CBETH_STRATEGY_ADDRESS,
-    provider
-  );
 
-  const stEthTvl =
-    Number(
-      await stEthStrategy.sharesToUnderlyingView(
-        await stEthStrategy.totalShares()
-      )
-    ) / 1e18;
-  const rEthTvl =
-    Number(
-      await rEthStrategy.sharesToUnderlyingView(
-        await rEthStrategy.totalShares()
-      )
-    ) / 1e18;
-  const cbEthTvl =
-    Number(
-      await cbEthStrategy.sharesToUnderlyingView(
-        await cbEthStrategy.totalShares()
-      )
-    ) / 1e18;
+  const labels = groupedStakersInfo.map((value) => value.label);
+  const tvls = groupedStakersInfo.reduce((acc, value) => {
+    acc[value.tvl[0]] = value.tvl[1];
+    return acc;
+  }, {});
 
-  const rEthSharesRate =
-    Number(await rEthStrategy.sharesToUnderlyingView(BigInt(1e18))) / 1e18;
-  const stEthSharesRate =
-    Number(await stEthStrategy.sharesToUnderlyingView(BigInt(1e18))) / 1e18;
-  const cbEthSharesRate =
-    Number(await cbEthStrategy.sharesToUnderlyingView(BigInt(1e18))) / 1e18;
+  console.log(stakersCombined, labels, tvls);
+
+  const groupedStakers = [stakersCombined, stakersBeaconChainEthConverted]
+    .reduce((acc, cur) => {
+      const existingDepositor = acc.find(
+        (d: LeaderboardUserData) => d.depositor === cur.depositor
+      );
+      existingDepositor
+        ? (existingDepositor.totalStaked += cur.totalStaked)
+        : acc.push({ ...cur });
+      return acc;
+    }, [] as LeaderboardUserData[])
+    .sort((a, b) => b.totalStaked - a.totalStaked)
+    .slice(0, MAX_LEADERBOARD_SIZE);
+
+  const pieChartData = {
+    labels,
+    amounts: [...groupedStakers, ...stakersCombined],
+  };
 
   return {
-    rEthSharesRate,
-    stEthSharesRate,
-    cbEthSharesRate,
-    rEthRate,
-    cbEthRate,
-    stEthTvl,
-    rEthTvl,
-    cbEthTvl,
+    pieChartData,
+    tvls,
   };
 }
