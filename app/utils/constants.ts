@@ -29,12 +29,22 @@ export const GOERLI_PROVIDER = new ethers.JsonRpcProvider(
   process.env.NEXT_PUBLIC_GOERLI_RPC_URL,
 );
 
+if (process.env.NEXT_PUBLIC_HOLESKY_RPC_URL === undefined) {
+  throw new Error("NEXT_PUBLIC_HOLESKY_RPC_URL env variable not set");
+}
+
+export const HOLESKY_PROVIDER = new ethers.JsonRpcProvider(
+  process.env.NEXT_PUBLIC_HOLESKY_RPC_URL,
+);
+
 export function getNetworkProvider(network: SupportedNetwork) {
   switch (network) {
     case "eth":
       return ETH_MAINNET_PROVIDER;
     case "goerli":
       return GOERLI_PROVIDER;
+    case "holesky":
+      return HOLESKY_PROVIDER;
     default:
       throw Error("Invalid network");
   }
@@ -215,6 +225,7 @@ export const NETWORK_TOKEN_INFO: Record<SupportedNetwork, Partial<TokenRecord<To
       address: ethers.ZeroAddress as `0x${string}`,
     },
   },
+  "holesky": {}
 };
 
 export function getTokenInfo(token: SupportedToken) {

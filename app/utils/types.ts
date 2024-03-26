@@ -17,7 +17,7 @@ export type SupportedStrategyToken = (typeof supportedStrategyTokens)[number];
 export const supportedTokens = [...supportedStrategyTokens, "beacon"] as const;
 export type SupportedToken = (typeof supportedTokens)[number];
 
-export const supportedNetworks = ["eth", "goerli"] as const;
+export const supportedNetworks = ["eth", "goerli", "holesky"] as const;
 export type SupportedNetwork = (typeof supportedNetworks)[number];
 
 export const supportedTimelines = ["1w", "1m", "1y", "full"] as const;

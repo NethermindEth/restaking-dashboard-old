@@ -44,6 +44,7 @@ export default function Data() {
           >
             <option value="eth">Mainnet</option>
             <option value="goerli">Goerli</option>
+            <option value="holesky">Holesky</option>
           </select>
         </div>
       </div>

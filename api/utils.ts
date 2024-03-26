@@ -1,5 +1,5 @@
 
-export const supportedChains = ["eth", "goerli"] as const;
+export const supportedChains = ["eth", "goerli", "holesky"] as const;
 export type Chain = (typeof supportedChains)[number];
 
 export const supportedTimelines = ["1w", "1m", "1y", "full"] as const;
@@ -53,6 +53,21 @@ export function getContractAddresses(chain: Chain): Record<SupportedToken, strin
         lsEth: "0x3ecCAdA3e11c1Cc3e9B5a53176A67cc3ABDD3E46",
         mEth: "0x20d7E093B3fa5eBfA7a0fa414FaD547743a2400F",
       };
+    case "holesky":
+      return {
+        stEth: "0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034",
+        cbEth: "0x8720095Fa5739Ab051799211B146a2EEE4Dd8B37",
+        rEth: "0x7322c24752f79c05ffd1e2a6fcb97020c1c264f1",
+        wBEth: undefined,
+        osEth: "0xF603c5A3F774F05d4D848A9bB139809790890864", // unofficial
+        swEth: undefined,
+        ankrEth: "0x8783c9c904e1bdc87d9168ae703c8481e8a477fd",
+        ethX: "0xB4F5fc289a778B80392b86fa70A7111E5bE0F859", // unofficial
+        oEth: "0xdbA64Bd5a0144E98c8dACB23b005d679b172dBba", // unofficial
+        sfrxEth: "0xa63f56985F9C7F3bc9fFc5685535649e0C1a55f3", // unofficial
+        lsEth: "0x1d8b30cC38Dba8aBce1ac29Ea27d9cFd05379A09",
+        mEth: "0xe3C063B1BEe9de02eb28352b55D49D85514C67FF",
+      }
     default:
       throw new Error(`Unknown network '${chain}'`);
   }
@@ -83,4 +98,5 @@ export const timelineToDays: Readonly<Record<Timeline, number>> = {
 export const startingEpochTimestamps: Readonly<Record<Chain, number>> = {
   "eth": 1606824023,
   "goerli": 1616508000,
+  "holesky": 0,
 }
