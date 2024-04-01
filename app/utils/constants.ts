@@ -225,7 +225,51 @@ export const NETWORK_TOKEN_INFO: Record<SupportedNetwork, Partial<TokenRecord<To
       address: ethers.ZeroAddress as `0x${string}`,
     },
   },
-  "holesky": {}
+  "holesky": {
+    ankrEth: {
+      strategyAddress: "0x7673a47463F80c6a3553Db9E54c8cDcd5313d0ac",
+      address: "0x8783c9c904e1bdc87d9168ae703c8481e8a477fd"
+    },
+    cbEth: {
+      strategyAddress: "0x70EB4D3c164a6B4A5f908D4FBb5a9cAfFb66bAB6",
+      address:"0x8720095Fa5739Ab051799211B146a2EEE4Dd8B37"
+    },
+    ethX: {
+      strategyAddress: "0x31B6F59e1627cEfC9fA174aD03859fC337666af7",
+      address: "0xB4F5fc289a778B80392b86fa70A7111E5bE0F859",
+      feed: "0x7F09ceb3874F5E35Cd2135F56fd4329b88c5d119"
+    },
+    lsEth: {
+      strategyAddress: "0x05037A81BD7B4C9E0F7B430f1F2A22c31a2FD943",
+      address: "0x1d8b30cC38Dba8aBce1ac29Ea27d9cFd05379A09"
+    },
+    mEth: {
+      strategyAddress: "0xaccc5A86732BE85b5012e8614AF237801636F8e5",
+      address: "0xe3C063B1BEe9de02eb28352b55D49D85514C67FF",
+      feed: "0xbe16244EAe9837219147384c8A7560BA14946262"
+    },
+    osEth: {
+      strategyAddress: "0x46281E3B7fDcACdBa44CADf069a94a588Fd4C6Ef",
+      address: "0xF603c5A3F774F05d4D848A9bB139809790890864",
+      feed: "0x030dB3BdF04Ae498078e2E167945f13ae73eAdD8"
+    },
+    rEth: {
+      strategyAddress: "0xf5ea7BC413da13dBF9b67531472e7fbd899cA513",
+      address:"0x7322c24752f79c05ffd1e2a6fcb97020c1c264f1"
+    },
+    sfrxEth: {
+      strategyAddress: "0x9281ff96637710Cd9A5CAcce9c6FAD8C9F54631c",
+      address: "0xa63f56985F9C7F3bc9fFc5685535649e0C1a55f3"
+    },
+    stEth: {
+      strategyAddress: "0x1354B44F4dAcFDE30b51954dB62EA7C66E553F3E",
+      address: "0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034"
+    },
+    beacon: {
+      strategyAddress: ethers.ZeroAddress as `0x${string}`,
+      address: ethers.ZeroAddress as `0x${string}`,
+    }
+  }
 };
 
 export function getTokenInfo(token: SupportedToken) {
